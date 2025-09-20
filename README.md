@@ -39,15 +39,13 @@ Following are the actions we will automate (copied from the kokorodoki repositor
 - Drag to reposition
 
 # Requirements
-- Python 3.7+
+- Python 3.7+ (developed and tested on 3.12.7)
 - PyQt6
 
 # Installation
 
 pip install PyQt6
 
-git clone https://github.com/YOUR_USERNAME/floating-music-toolbar.git
+clone the repository (or download the files)
 
-cd floating-music-toolbar
-
-python3 music_toolbar.py
+python3 floatingtoolbar.py
