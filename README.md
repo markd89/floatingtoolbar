@@ -1,12 +1,12 @@
 # floatingtoolbar
-Python GUI (Qt6) toolbar front-end to control kokorodoki daemon
+Python GUI (Qt6) toolbar front-end to control the kokorodoki daemon
 
 Kokorodoki provides a nice implementation of Kokoro TTS
 https://github.com/eel-brah/kokorodoki 
 
 When run in daemon mode, it waits for the client to pass it an action such as speak the text in the clipboard, stop playback, etc. The author suggests associating keyboard hotkeys for each action.
 
-This python toolbar provides an alternative to hotkeys with this UI.
+This python toolbar provides an alternative to hotkeys with a UI.
 
 <img width="165" height="36" alt="image" src="https://github.com/user-attachments/assets/9364ea53-3a23-4ad2-a27e-64aeffaaf15e" />
 
