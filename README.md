@@ -39,7 +39,7 @@ Following are the actions we will automate (copied from the kokorodoki repositor
 - Drag to reposition
 
 # Requirements
-- Python 3.7+ (developed and tested on 3.12.7)
+- Python 3.12
 - PyQt6
 
 # Installation
