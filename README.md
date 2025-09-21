@@ -6,7 +6,7 @@ https://github.com/eel-brah/kokorodoki
 
 When run in daemon mode, it waits for the client to pass it an action such as speak the text in the clipboard, stop playback, etc. The author suggests associating keyboard hotkeys for each action.
 
-This python toolbar provides an alternative to hotkeys with a UI.
+This python toolbar provides a UI alternative to using hotkeys.
 
 <img width="165" height="36" alt="image" src="https://github.com/user-attachments/assets/9364ea53-3a23-4ad2-a27e-64aeffaaf15e" />
 
@@ -37,6 +37,27 @@ Following are the actions we will automate (copied from the kokorodoki repositor
 
 ## Go back a sentence
 ~/.venvs/kdvenv/bin/python3.12 ~/.local/bin/kdoki/src/client.py --back
+
+# Options you may want to be aware of in the INI
+
+[Behavior]
+
+remember_voice_and_speed = 0/1
+
+This causes voice and speed to be remembered between sessions. If you are controlling kokorodoki's speed/voice outside of the toolbar, you'll want to set this to 0.
+
+Another option added in the ini allows you to set speed defaults for specific Voices. For example, I find the following useful:
+
+[SpeedDefaults]
+
+af_heart = 1.1
+
+af_nicole = 1.4
+
+[Appearance]
+
+Set the default x, y location of the toolbar position on launch.
+Adjust the button size.
 
 # Features
 - Frameless, always-on-top design
