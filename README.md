@@ -12,6 +12,12 @@ This python toolbar provides an alternative to hotkeys with a UI.
 
 The included toolbar_config.ini allows you to configure what happens for each button.
 
+New in version 1.1 is the ability to set voice and speed from within the application. Right click to display these options:
+
+<img width="156" height="157" alt="image" src="https://github.com/user-attachments/assets/646d281a-351f-4590-84e0-b04cf3a2de41" />
+
+then Right-click again to apply the changes to Voice and/or Speed.
+
 Following are the actions we will automate (copied from the kokorodoki repository)
 
 ## Send from clipboard
