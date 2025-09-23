@@ -14,7 +14,8 @@ The included toolbar_config.ini allows you to configure what happens for each bu
 
 New in version 1.1 is the ability to set voice and speed from within the application. Right click to display these options:
 
-<img width="181" height="149" alt="image" src="https://github.com/user-attachments/assets/ea37529f-e0d5-4358-a055-38159c5c776b" />
+<img width="190" height="155" alt="image" src="https://github.com/user-attachments/assets/c0435f94-62e5-4a5b-b554-b47e1eb10845" />
+
 
 
 Following are the actions we will automate (copied from the kokorodoki repository)
