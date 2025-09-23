@@ -22,6 +22,7 @@ class FloatingToolbar(QWidget):
         self.pending_speed = None  # Speed selected in dropdown but not applied yet
         self.initializing = False
         self.init_label = None
+        self.play_state = ""  # "", "playing", or "paused"
         self.load_config()
         self.init_ui()
         self.initialize_settings()
@@ -47,7 +48,8 @@ class FloatingToolbar(QWidget):
             'record': 'echo "Record pressed"',
             'rewind': 'echo "Rewind pressed"',
             'play': 'echo "Play pressed"',
-            'pause': 'echo "Pause pressed"', 
+            'pause': 'echo "Pause pressed"',
+            'resume': 'echo "Resume pressed"',
             'stop': 'echo "Stop pressed"',
             'fast_forward': 'echo "Fast forward pressed"'
         }
@@ -182,6 +184,11 @@ class FloatingToolbar(QWidget):
         self.offset = None
         self.press_pos = None
         
+        # Add keyboard shortcut for quit (Ctrl+Q)
+        from PyQt6.QtGui import QShortcut, QKeySequence
+        quit_shortcut = QShortcut(QKeySequence("Ctrl+Q"), self)
+        quit_shortcut.activated.connect(self.confirm_quit)
+        
     def create_expanded_widget(self):
         """Create the expanded options widget"""
         expanded_widget = QWidget()
@@ -217,7 +224,7 @@ class FloatingToolbar(QWidget):
                 border-radius: 4px;
                 padding: 8px 16px;
                 font-weight: bold;
-                min-width: 60px;
+                min-width: 50px;
             }
             QPushButton:hover {
                 background-color: #555;
@@ -228,7 +235,7 @@ class FloatingToolbar(QWidget):
         """)
         
         layout = QVBoxLayout()
-        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setContentsMargins(5, 5, 5, 5)  # Add margins: left, top, right, bottom
         layout.setSpacing(8)
         
         # Voice selection
@@ -277,17 +284,94 @@ class FloatingToolbar(QWidget):
             speed_layout.addStretch()
             layout.addLayout(speed_layout)
         
-        # Button layout
+        # Button layout - clean and simple
         button_layout = QHBoxLayout()
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.setSpacing(1)  # Same spacing as top buttons
+        
+        # Calculate button width: 2x the toolbar button size
+        toolbar_button_size = int(self.config.get('Appearance', 'button_size', fallback='40'))
+        control_button_width = toolbar_button_size * 2
+        
+        # Create the three buttons
+        ok_button = QPushButton("OK")
+        ok_button.setFixedSize(QSize(control_button_width, toolbar_button_size))
+        ok_button.setFlat(False)  # Ensure it's a normal button
+        ok_button.setStyleSheet("""
+            QPushButton {
+                border: 1px solid #666;
+                border-radius: 4px;
+                background-color: #333;
+                color: white;
+                font-size: 12pt;
+                font-weight: bold;
+                text-align: center;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background-color: #555;
+                border: 1px solid #888;
+            }
+            QPushButton:pressed {
+                background-color: #222;
+                border: 1px solid #999;
+            }
+        """)
+        ok_button.clicked.connect(self.collapse_options)
         
         cancel_button = QPushButton("Cancel")
-        cancel_button.clicked.connect(self.collapse_options)
+        cancel_button.setFixedSize(QSize(control_button_width, toolbar_button_size))
+        cancel_button.setFlat(False)
+        cancel_button.setStyleSheet("""
+            QPushButton {
+                border: 1px solid #666;
+                border-radius: 4px;
+                background-color: #333;
+                color: white;
+                font-size: 12pt;
+                font-weight: bold;
+                text-align: center;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background-color: #555;
+                border: 1px solid #888;
+            }
+            QPushButton:pressed {
+                background-color: #222;
+                border: 1px solid #999;
+            }
+        """)
+        cancel_button.clicked.connect(self.cancel_changes)
         
         quit_button = QPushButton("Quit")
+        quit_button.setFixedSize(QSize(control_button_width, toolbar_button_size))
+        quit_button.setFlat(False)
+        quit_button.setStyleSheet("""
+            QPushButton {
+                border: 1px solid #666;
+                border-radius: 4px;
+                background-color: #333;
+                color: white;
+                font-size: 12pt;
+                font-weight: bold;
+                text-align: center;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background-color: #555;
+                border: 1px solid #888;
+            }
+            QPushButton:pressed {
+                background-color: #222;
+                border: 1px solid #999;
+            }
+        """)
         quit_button.clicked.connect(self.confirm_quit)
         
-        button_layout.addWidget(cancel_button)
-        button_layout.addStretch()
+        # Add buttons to layout
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button) 
         button_layout.addWidget(quit_button)
         layout.addLayout(button_layout)
         
@@ -456,12 +540,74 @@ class FloatingToolbar(QWidget):
         self.setFixedSize(self.size())
         
     def collapse_options(self):
-        """Collapse the options panel"""
+        """Collapse the options panel and apply changes (OK button / right-click)"""
         if not self.expanded or not self.expanded_widget:
             return
         
         # Apply any pending changes before collapsing
         self.apply_pending_changes()
+            
+        animate = self.config.getboolean('Appearance', 'animation', fallback=True)
+        
+        if animate:
+            self.animation = QPropertyAnimation(self.expanded_widget, b"maximumHeight")
+            self.animation.setDuration(200)
+            self.animation.setStartValue(self.expanded_widget.height())
+            self.animation.setEndValue(0)
+            self.animation.setEasingCurve(QEasingCurve.Type.InCubic)
+            self.animation.finished.connect(self.remove_expanded_widget)
+            self.animation.start()
+        else:
+            self.remove_expanded_widget()
+            
+    def cancel_changes(self):
+        """Cancel changes and collapse without applying (Cancel button)"""
+        if not self.expanded or not self.expanded_widget:
+            return
+            
+        # Reset pending values to current values (discard changes)
+        self.pending_voice = self.current_voice
+        self.pending_speed = self.current_speed
+        
+        # Update dropdowns to show current values (revert any changes)
+        if hasattr(self, 'voice_combo') and self.current_voice:
+            self.voice_combo.setCurrentText(self.current_voice)
+        if hasattr(self, 'speed_combo') and self.current_speed:
+            self.speed_combo.setCurrentText(self.current_speed)
+        
+        # Collapse without applying changes
+        animate = self.config.getboolean('Appearance', 'animation', fallback=True)
+        
+        if animate:
+            self.animation = QPropertyAnimation(self.expanded_widget, b"maximumHeight")
+            self.animation.setDuration(200)
+            self.animation.setStartValue(self.expanded_widget.height())
+            self.animation.setEndValue(0)
+            self.animation.setEasingCurve(QEasingCurve.Type.InCubic)
+            self.animation.finished.connect(self.remove_expanded_widget)
+            self.animation.start()
+        else:
+            self.remove_expanded_widget()
+            
+    def cancel_changes(self):
+        """Cancel changes and collapse without applying"""
+        # Reset pending values to current values
+        self.pending_voice = self.current_voice
+        self.pending_speed = self.current_speed
+        
+        # Update dropdowns to show current values (not pending changes)
+        if hasattr(self, 'voice_combo') and self.current_voice:
+            self.voice_combo.setCurrentText(self.current_voice)
+        if hasattr(self, 'speed_combo') and self.current_speed:
+            self.speed_combo.setCurrentText(self.current_speed)
+        
+        # Collapse without applying changes
+        self.collapse_options_without_applying()
+        
+    def collapse_options_without_applying(self):
+        """Collapse the options panel without applying changes"""
+        if not self.expanded or not self.expanded_widget:
+            return
             
         animate = self.config.getboolean('Appearance', 'animation', fallback=True)
         
@@ -523,12 +669,74 @@ class FloatingToolbar(QWidget):
     def execute_command(self, command_key):
         """Execute the command associated with the button"""
         try:
-            command = self.config.get('Commands', command_key, fallback='')
-            if command:
-                # Execute command in background
-                subprocess.Popen(command, shell=True)
+            # Handle play/pause state logic
+            if command_key == 'play':
+                if self.play_state == "paused":
+                    # If paused, resume instead of play
+                    command = self.config.get('Commands', 'resume', fallback='')
+                    if command:
+                        subprocess.Popen(command, shell=True)
+                        self.play_state = "playing"
+                        print(f"Resumed playback, state: {self.play_state}")
+                else:
+                    # Not playing or unknown - start/restart playback
+                    command = self.config.get('Commands', 'play', fallback='')
+                    if command:
+                        subprocess.Popen(command, shell=True)
+                        self.play_state = "playing"
+                        print(f"Started/restarted playback, state: {self.play_state}")
+                return
+                    
+            elif command_key == 'pause':
+                if self.play_state == "playing":
+                    # Playing, so pause
+                    command = self.config.get('Commands', 'pause', fallback='')
+                    if command:
+                        subprocess.Popen(command, shell=True)
+                        self.play_state = "paused"
+                        print(f"Paused playback, state: {self.play_state}")
+                elif self.play_state == "paused":
+                    # Already paused, resume
+                    command = self.config.get('Commands', 'resume', fallback='')
+                    if command:
+                        subprocess.Popen(command, shell=True)
+                        self.play_state = "playing"
+                        print(f"Resumed from pause button, state: {self.play_state}")
+                else:
+                    # Not playing/paused - treat as pause command anyway
+                    command = self.config.get('Commands', 'pause', fallback='')
+                    if command:
+                        subprocess.Popen(command, shell=True)
+                        print(f"Executed pause command, keeping state: {self.play_state}")
+                return
+                    
+            elif command_key == 'stop':
+                # Stop playback and reset state
+                command = self.config.get('Commands', 'stop', fallback='')
+                if command:
+                    subprocess.Popen(command, shell=True)
+                    self.play_state = ""
+                    print(f"Stopped playback, state: {self.play_state}")
+                return
+                
+            elif command_key in ['rewind', 'fast_forward']:
+                # Seeking - execute command and set state to playing
+                command = self.config.get('Commands', command_key, fallback='')
+                if command:
+                    subprocess.Popen(command, shell=True)
+                    self.play_state = "playing"
+                    print(f"Seeking ({command_key}), state: {self.play_state}")
+                return
+                
             else:
-                print(f"No command configured for {command_key}")
+                # Other commands (like record) don't affect play state
+                command = self.config.get('Commands', command_key, fallback='')
+                if command:
+                    subprocess.Popen(command, shell=True)
+                    print(f"Executed {command_key} command")
+                else:
+                    print(f"No command configured for {command_key}")
+                    
         except Exception as e:
             print(f"Error executing command for {command_key}: {e}")
             
